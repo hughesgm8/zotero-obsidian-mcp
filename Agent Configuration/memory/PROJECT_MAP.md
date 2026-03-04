@@ -21,7 +21,6 @@ Maintain a system map the user can understand. The project's status is updated r
 - Tested end-to-end in a real Obsidian vault (confirmed working)
 
 ## 📋 Planned
-- "Test Connection" buttons in settings for MCP and LLM
 - "Smart mode" for capable models that can call MCP tools themselves
 - Model switching directly in the sidebar UI (currently settings-only)
 - **UI polish pass**: revisit look and feel to more closely match Copilot (typography, spacing, message bubble style, overall visual consistency) — current layout is structurally correct but visual details need refinement
