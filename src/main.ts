@@ -1,4 +1,5 @@
 import { Notice, Plugin } from "obsidian";
+import type { Editor } from "obsidian";
 import type { ZoteroMCPSettings } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import { ZoteroMCPSettingTab } from "./settings";
@@ -60,6 +61,40 @@ export default class ZoteroMCPChatPlugin extends Plugin {
 					this.settings
 				);
 				new ImportModal(this.app, importer).open();
+			},
+		});
+
+		// Command to insert AI summary into the active note
+		this.addCommand({
+			id: "insert-ai-summary-into-note",
+			name: "Insert AI summary into active note",
+			editorCallback: (editor: Editor) => {
+				if (!this.mcpClient) {
+					new Notice(
+						"Zotero Chat: The Zotero server is not running. Please check your settings.",
+						8000
+					);
+					return;
+				}
+				const llm = createLLMProvider(this.settings);
+				const importer = new PaperImporter(
+					this.app,
+					this.mcpClient,
+					llm,
+					this.settings
+				);
+				new ImportModal(this.app, importer, {
+					title: "Insert AI summary into active note",
+					onSelect: async (source) => {
+						new Notice(
+							`Generating summary for "${source.title}"... This may take 20-30 seconds.`,
+							8000
+						);
+						const markdown = await importer.generateSummaryMarkdown(source);
+						editor.replaceSelection(markdown);
+						new Notice("Summary inserted.");
+					},
+				}).open();
 			},
 		});
 

@@ -8,17 +8,28 @@ export class ImportModal extends Modal {
 	private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 	private resultsEl!: HTMLElement;
 	private statusEl!: HTMLElement;
+	private modalTitle: string;
+	private onSelect: ((source: ZoteroSource) => Promise<void>) | null;
 
-	constructor(app: App, importer: PaperImporter) {
+	constructor(
+		app: App,
+		importer: PaperImporter,
+		options?: {
+			title?: string;
+			onSelect?: (source: ZoteroSource) => Promise<void>;
+		}
+	) {
 		super(app);
 		this.importer = importer;
+		this.modalTitle = options?.title ?? "Import paper from Zotero";
+		this.onSelect = options?.onSelect ?? null;
 	}
 
 	onOpen(): void {
 		const { contentEl } = this;
 		contentEl.addClass("zotero-import-modal");
 
-		contentEl.createEl("h3", { text: "Import paper from Zotero" });
+		contentEl.createEl("h3", { text: this.modalTitle });
 
 		const searchInput = contentEl.createEl("input", {
 			type: "text",
@@ -102,6 +113,17 @@ export class ImportModal extends Modal {
 	private async selectPaper(source: ZoteroSource): Promise<void> {
 		this.close();
 
+		if (this.onSelect) {
+			try {
+				await this.onSelect(source);
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				console.error("Insert failed:", err);
+				new Notice(`Insert failed: ${msg}`, 10000);
+			}
+			return;
+		}
+
 		new Notice(
 			`Importing "${source.title}"... This may take 20-30 seconds.`,
 			8000
@@ -111,7 +133,6 @@ export class ImportModal extends Modal {
 			const result = await this.importer.importPaper(source);
 			new Notice(`Imported: ${result.title}`);
 
-			// Open the newly created note
 			const file = this.app.vault.getAbstractFileByPath(result.filePath);
 			if (file) {
 				await this.app.workspace.openLinkText(result.filePath, "", true);
