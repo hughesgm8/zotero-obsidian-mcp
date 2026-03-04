@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type ZoteroMCPChatPlugin from "./main";
 import type { LLMProviderType } from "./types";
+import { createLLMProvider } from "./llm/index";
 
 export class ZoteroMCPSettingTab extends PluginSettingTab {
 	plugin: ZoteroMCPChatPlugin;

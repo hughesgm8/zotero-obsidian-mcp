@@ -74,7 +74,13 @@ zotero-mcp is the bridge between your Zotero library and the plugin. It reads yo
 
 ### 2c. Install zotero-mcp
 
-The recommended way to install zotero-mcp is via **pipx**, which handles the installation cleanly and makes the `zotero-mcp` command available without PATH issues. In Terminal, paste these commands one at a time and press Enter after each:
+The recommended way to install zotero-mcp is via **pipx**, which handles the installation cleanly and makes the `zotero-mcp` command available without PATH issues. **Note**: If you've never installed anything with [Homebrew](https://brew.sh) (a package manager), install it first using the following command: 
+
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Then, in Terminal, paste these commands one at a time and press Enter after each:
 
 ```
 brew install pipx
