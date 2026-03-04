@@ -29,7 +29,7 @@ Maintain a system map the user can understand. The project's status is updated r
 - More detailed and adaptive context on user's research interests to expand the "Relevance" section of paper imports
 
 ## ✅ Recently Shipped
-- **Smart Import** (2026-02-26): Command palette → "Import paper from Zotero with AI summary" → search modal → pick paper → LLM generates Summary, Takeaways, Questions for Active Engagement, Relevance → note saved to configurable folder with `ai-imported` tag. New settings: import folder, research interests. Files: `src/paper-importer.ts`, `src/import-modal.ts`.
+- **Smart Import** (2026-02-26): Two commands — "Import paper from Zotero with AI summary" (creates new note) and "Insert AI summary into active note" (inserts Summary, Takeaways, Questions, Relevance at cursor in open note — for enriching existing Zotero Integration notes). Files: `src/paper-importer.ts`, `src/import-modal.ts`.
 - **Multi-note @ picker** (2026-02-25): Replaced paperclip button with `@` button → `FuzzySuggestModal` note picker → multiple notes attached as removable pills. Notes are passed separately to the LLM, not to semantic search (see ARCHITECTURAL_DECISIONS.md).
 - **Server reuse across reloads** (2026-02-25): `stop()` no longer kills the zotero-mcp process; `tryReuseExistingServer()` detects and reattaches to a warm server on reload, making plugin toggle and "reload app" near-instant after first cold start.
 
