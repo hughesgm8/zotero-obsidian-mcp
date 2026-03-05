@@ -29,6 +29,10 @@ Maintain a system map the user can understand. The project's status is updated r
 - More detailed and adaptive context on user's research interests to expand the "Relevance" section of paper imports
 
 ## ✅ Recently Shipped
+- **Customisable summary sections** (2026-03-05): Smart Import sections (Summary, Takeaways, Questions, Relevance) are now user-configurable in Settings. Add, delete, reorder (↑/↓), and edit name + instructions per section. Prompt builder and note builder are fully dynamic. Closes GitHub issue #1.
+
+- **Custom Z icon** (2026-03-05): Replaced `book-open` with a custom SVG Z icon registered via `addIcon()`. Closes GitHub issue #4.
+
 - **Always-on hybrid search** (2026-03-05): Semantic search + per-token keyword search run in parallel on every query. Results merged by three-tier ranking (matched both > keyword-only > semantic-only). Fixes queries containing specific identifiers (filenames, author names, acronyms) that embedding models can't represent. `zotero_advanced_search` was investigated and abandoned — it requires the Zotero Web API (cloud); the local API rejects its `POST /searches` endpoint.
 
 - **Smart Import** (2026-02-26): Two commands — "Import paper from Zotero with AI summary" (creates new note) and "Insert AI summary into active note" (inserts Summary, Takeaways, Questions, Relevance at cursor in open note — for enriching existing Zotero Integration notes). Files: `src/paper-importer.ts`, `src/import-modal.ts`.
