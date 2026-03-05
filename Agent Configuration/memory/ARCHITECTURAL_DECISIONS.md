@@ -12,10 +12,39 @@ The plugin works reliably with local models (DeepSeek via Ollama) that can't do 
 ### Why We Chose This
 - Local model support is a first-class concern, not an afterthought
 - Fixed pipeline is predictable and debuggable
-- MVP doesn't need adaptive search — semantic search + metadata is sufficient
+- MVP doesn't need adaptive search — hybrid search (see below) covers the main failure case
 
 ### What Could Change
 If we add "Smart mode" for capable models (Claude, GPT-4), we'd let those models call tools directly while keeping the deterministic pipeline as the default.
+
+---
+
+## Decision: Always-on hybrid search with three-tier ranking — *2026-03-05*
+
+### Why This Matters
+Semantic search alone fails for queries containing specific identifiers (filenames like "AGENTS.md", author names, acronyms) that embedding models can't represent. These are exactly the queries where users most need precision.
+
+### Options We Considered
+1. **Semantic only**: Simple, but misses specific-identifier queries entirely.
+2. **LLM keyword extraction + `zotero_search_items`**: LLM extracts keywords, passed as a single multi-word query. Fails because `zotero_search_items` uses AND logic — multi-word queries require every word to appear in the paper title/creator/year.
+3. **`zotero_advanced_search` with OR logic**: Correct semantics, but uses `POST /api/users/0/searches` (saved search creation) which the local Zotero API (port 23119) does not support. Only works with the Zotero Web API (cloud + API key). Abandoned.
+4. **Per-token parallel `zotero_search_items`**: Split question into tokens (≥3 chars), fire one `zotero_search_items` call per token in parallel. Single-word queries can't fail AND-logic. Confirmed working via direct API test.
+
+### Why We Chose This
+- The local Zotero API supports single-word searches reliably
+- Claude Desktop handles these queries well because Claude the LLM naturally extracts single keywords — our deterministic pipeline replicates that behaviour explicitly
+- Parallel calls add minimal latency (all fire simultaneously, semantic search runs at the same time)
+
+### Three-Tier Ranking
+Results are merged in confidence order:
+- **Tier 1** — in both semantic AND keyword results (semantic rank preserved): highest confidence
+- **Tier 2** — keyword-only: specific identifier/author matches that semantics missed
+- **Tier 3** — semantic-only: conceptually related, no keyword hit
+
+This ensures a perfect keyword match (e.g. "AGENTS" → AGENTS.md paper) is never buried behind 10 unrelated semantic results.
+
+### What Could Change
+If the local Zotero API ever supports saved searches, `zotero_advanced_search` could replace the per-token approach with a single request. Unlikely — the local API is a partial subset of the Web API and saved search creation has never been supported.
 
 ---
 

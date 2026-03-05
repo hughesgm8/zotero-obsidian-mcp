@@ -27,11 +27,11 @@ export class Orchestrator {
 		conversationHistory: ChatMessage[],
 		attachedNotes?: Array<{ name: string; content: string }>
 	): Promise<OrchestratorResult> {
-		// 1) Semantic search in Zotero
-		const searchResult = await this.mcpClient.callTool(
-			"zotero_semantic_search",
-			{ query: question }
-		);
+		// 1) Parallel hybrid search: semantic + per-token keyword
+		const [searchResult, keywordKeys] = await Promise.all([
+			this.mcpClient.callTool("zotero_semantic_search", { query: question }),
+			this.keywordSearch(question),
+		]);
 
 		// Detect error text returned as plain content (zotero-mcp does not always
 		// set isError:true — it sometimes returns errors as regular text).
@@ -41,8 +41,17 @@ export class Orchestrator {
 			);
 		}
 
-		// 2) Parse item keys from search results
-		const itemKeys = this.extractItemKeys(searchResult);
+		// 2) Three-tier merge by confidence:
+		//   Tier 1: in both semantic + keyword (semantic rank preserved) — highest confidence
+		//   Tier 2: keyword-only — specific identifier/author match that semantics missed
+		//   Tier 3: semantic-only — conceptually related, no keyword hit
+		const semanticKeys = this.extractItemKeys(searchResult);
+		const keywordSet = new Set(keywordKeys);
+		const semanticSet = new Set(semanticKeys);
+		const tier1 = semanticKeys.filter(k => keywordSet.has(k));
+		const tier2 = keywordKeys.filter(k => !semanticSet.has(k));
+		const tier3 = semanticKeys.filter(k => !keywordSet.has(k));
+		const itemKeys = [...tier1, ...tier2, ...tier3].slice(0, 25);
 
 		// Gather source keys from the last assistant message so follow-up
 		// questions can reference previously discussed papers.
@@ -292,6 +301,34 @@ export class Orchestrator {
 		});
 
 		return `Papers from the user's Zotero library:\n\n${parts.join("\n\n")}`;
+	}
+
+	private async keywordSearch(question: string): Promise<string[]> {
+		const tokens = question
+			.split(/[\s\W]+/)
+			.filter(w => w.length >= 3);
+
+		const results = await Promise.all(
+			tokens.map(token =>
+				this.mcpClient.callTool("zotero_search_items", {
+					query: token,
+					qmode: "titleCreatorYear",
+					limit: 5,
+				}).catch(() => "")
+			)
+		);
+
+		const seen = new Set<string>();
+		const keys: string[] = [];
+		for (const result of results) {
+			for (const key of this.extractItemKeys(result ?? "")) {
+				if (!seen.has(key)) {
+					seen.add(key);
+					keys.push(key);
+				}
+			}
+		}
+		return keys;
 	}
 
 	private buildMessages(

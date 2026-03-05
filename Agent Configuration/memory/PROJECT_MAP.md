@@ -10,7 +10,7 @@ Maintain a system map the user can understand. The project's status is updated r
 - MCP server manager: auto-spawn, warm-server reuse across reloads (`tryReuseExistingServer`), `stop()` keeps server alive; crash detection via `onUnexpectedExit` callback turns status dot red and shows a 10-second notice
 - MCP client (JSON-RPC 2.0 over HTTP with SSE support via Node `http` module — `requestUrl` and `fetch` were tried first and failed; see ARCHITECTURAL_DECISIONS.md)
 - LLM provider abstraction (Ollama, OpenRouter, Anthropic)
-- Deterministic query orchestrator (search → metadata → full text → LLM)
+- Deterministic query orchestrator with always-on hybrid search: semantic + per-token keyword search run in parallel, merged via three-tier ranking (both > keyword-only > semantic-only)
 - Sidebar chat view with markdown rendering, citations, copy button (copies full response including sources; user messages are text-selectable)
 - Redesigned input area: unified rounded box with pills, textarea, and `@` / Send toolbar inside; action buttons in a controls bar above the input; header shows title + "Connected/Disconnected/Thinking…" status
 - Save conversation to vault (floppy disk button → `Zotero Chats/YYYY-MM-DD/` folder)
@@ -29,6 +29,8 @@ Maintain a system map the user can understand. The project's status is updated r
 - More detailed and adaptive context on user's research interests to expand the "Relevance" section of paper imports
 
 ## ✅ Recently Shipped
+- **Always-on hybrid search** (2026-03-05): Semantic search + per-token keyword search run in parallel on every query. Results merged by three-tier ranking (matched both > keyword-only > semantic-only). Fixes queries containing specific identifiers (filenames, author names, acronyms) that embedding models can't represent. `zotero_advanced_search` was investigated and abandoned — it requires the Zotero Web API (cloud); the local API rejects its `POST /searches` endpoint.
+
 - **Smart Import** (2026-02-26): Two commands — "Import paper from Zotero with AI summary" (creates new note) and "Insert AI summary into active note" (inserts Summary, Takeaways, Questions, Relevance at cursor in open note — for enriching existing Zotero Integration notes). Files: `src/paper-importer.ts`, `src/import-modal.ts`.
 - **Multi-note @ picker** (2026-02-25): Replaced paperclip button with `@` button → `FuzzySuggestModal` note picker → multiple notes attached as removable pills. Notes are passed separately to the LLM, not to semantic search (see ARCHITECTURAL_DECISIONS.md).
 - **Server reuse across reloads** (2026-02-25): `stop()` no longer kills the zotero-mcp process; `tryReuseExistingServer()` detects and reattaches to a warm server on reload, making plugin toggle and "reload app" near-instant after first cold start.
