@@ -49,8 +49,7 @@ export class ImportModal extends Modal {
 			if (this.debounceTimer) clearTimeout(this.debounceTimer);
 			const query = searchInput.value.trim();
 			if (!query) {
-				this.resultsEl.empty();
-				this.statusEl.textContent = "";
+				this.loadRecentItems();
 				return;
 			}
 			this.debounceTimer = setTimeout(() => this.runSearch(query), 400);
@@ -58,11 +57,42 @@ export class ImportModal extends Modal {
 
 		// Focus the input after the modal renders
 		setTimeout(() => searchInput.focus(), 50);
+
+		this.loadRecentItems();
 	}
 
 	onClose(): void {
 		if (this.debounceTimer) clearTimeout(this.debounceTimer);
 		this.contentEl.empty();
+	}
+
+	private async loadRecentItems(): Promise<void> {
+		this.resultsEl.empty();
+		this.statusEl.textContent = "Loading recent papers...";
+
+		try {
+			const results = await this.importer.getRecentItems(10);
+			this.statusEl.textContent = "";
+			this.resultsEl.empty();
+
+			if (results.length === 0) {
+				this.statusEl.textContent = "No recent papers found.";
+				return;
+			}
+
+			this.resultsEl.createEl("div", {
+				text: "Recently added",
+				cls: "zotero-import-section-label",
+			});
+
+			for (const source of results) {
+				this.renderResult(source);
+			}
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			console.error("Failed to load recent items:", err);
+			this.statusEl.textContent = `Could not load recent papers: ${msg}`;
+		}
 	}
 
 	private async runSearch(query: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { App, Notice, normalizePath } from "obsidian";
+import * as http from "http";
 import type { MCPClient } from "./mcp-client";
 import type { LLMProvider, LLMMessage } from "./llm/llm-provider";
 import type { ZoteroMCPSettings, ZoteroSource } from "./types";
@@ -19,6 +20,49 @@ export class PaperImporter {
 		this.mcpClient = mcpClient;
 		this.llmProvider = llmProvider;
 		this.settings = settings;
+	}
+
+	async getRecentItems(limit = 10): Promise<ZoteroSource[]> {
+		const path = `/api/users/0/items/top?sort=dateAdded&direction=desc&limit=${limit}`;
+		const body = await new Promise<string>((resolve, reject) => {
+			const req = http.request(
+				{ hostname: "localhost", port: 23119, path, method: "GET" },
+				(res) => {
+					if (res.statusCode && res.statusCode >= 400) {
+						reject(new Error(`Zotero API returned ${res.statusCode}`));
+						res.resume();
+						return;
+					}
+					let data = "";
+					res.on("data", (chunk) => { data += chunk.toString(); });
+					res.on("end", () => resolve(data));
+				}
+			);
+			req.on("error", reject);
+			req.end();
+		});
+		const items: Array<{ key: string; data: Record<string, unknown> }> = JSON.parse(body);
+
+		return items
+			.filter((item) => {
+				const t = item.data.itemType as string;
+				return t !== "attachment" && t !== "note";
+			})
+			.map((item) => {
+				const d = item.data;
+				const dateStr = (d.date as string | undefined) ?? "";
+				const yearMatch = dateStr.match(/\b(\d{4})\b/);
+				return {
+					key: item.key,
+					title: (d.title as string | undefined) ?? "Untitled",
+					authors: this.formatAuthors(
+						d.creators as Array<{ firstName?: string; lastName?: string; name?: string }> | undefined
+					),
+					year: yearMatch ? yearMatch[1] : "n.d.",
+					itemType: (d.itemType as string | undefined) ?? "unknown",
+					abstract: (d.abstractNote as string | undefined) || undefined,
+				};
+			});
 	}
 
 	async search(query: string): Promise<ZoteroSource[]> {
