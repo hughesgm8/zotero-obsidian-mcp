@@ -29,6 +29,8 @@ Maintain a system map the user can understand. The project's status is updated r
 - More detailed and adaptive context on user's research interests to expand the "Relevance" section of paper imports
 
 ## ✅ Recently Shipped
+- **Persistent import loading notice** (2026-03-06): Import notices now stay visible for the full duration of the AI generation (timeout=0), then are dismissed via `.hide()` on success or error. Previously the 8-second notice disappeared mid-import, leaving users uncertain whether the operation was still running. Closes GitHub issue #3.
+
 - **Recently added papers in import modal** (2026-03-06): Smart Import modal now shows the 10 most recently added Zotero papers on open, before any search is typed. Clears back to this list when search is emptied. Uses Node `http` (not `requestUrl`) to call the Zotero local API at port 23119 — `requestUrl` triggered a CSRF 403; Node http sends no Origin header and is accepted. Closes GitHub issue #2.
 
 - **Customisable summary sections** (2026-03-05): Smart Import sections (Summary, Takeaways, Questions, Relevance) are now user-configurable in Settings. Add, delete, reorder (↑/↓), and edit name + instructions per section. Prompt builder and note builder are fully dynamic. Closes GitHub issue #1.
