@@ -251,11 +251,13 @@ export class ZoteroChatView extends ItemView {
 
 			// Sources list
 			if (msg.sources && msg.sources.length > 0) {
-				const sourcesEl = wrapper.createDiv({
+				const details = wrapper.createEl("details", {
 					cls: "zotero-chat-sources",
 				});
-				sourcesEl.createEl("strong", { text: "Sources:" });
-				const list = sourcesEl.createEl("ul");
+				details.createEl("summary", {
+					text: `Sources (${msg.sources.length})`,
+				});
+				const list = details.createEl("ul");
 				for (const src of msg.sources) {
 					const li = list.createEl("li");
 					li.createEl("span", {

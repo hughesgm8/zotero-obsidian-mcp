@@ -146,6 +146,14 @@
 	margin-bottom: 2px;
 }
 
+.zotero-chat-sources summary {
+	cursor: pointer;
+	list-style: disclosure-closed;
+	font-size: var(--font-text-size);
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
 /* Message actions */
 .zotero-chat-message-actions {
 	display: flex;
