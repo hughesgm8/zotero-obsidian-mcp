@@ -66,13 +66,142 @@
 }
 
 .zotero-chat-save-btn,
-.zotero-chat-new-btn {
+.zotero-chat-new-btn,
+.zotero-chat-history-btn {
 	color: var(--text-muted);
 }
 
 .zotero-chat-save-btn:hover,
-.zotero-chat-new-btn:hover {
+.zotero-chat-new-btn:hover,
+.zotero-chat-history-btn:hover {
 	color: var(--text-normal);
+}
+
+/* ========================================
+   Chat History Popover
+   ======================================== */
+
+.zotero-chat-history-popover {
+	position: fixed;
+	z-index: var(--layer-popover, 300);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	box-shadow: var(--shadow-s);
+	width: 300px;
+	max-height: 420px;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.zotero-chat-history-popover-header {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 10px 12px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+}
+
+.zotero-chat-history-popover-title {
+	font-size: var(--font-ui-small);
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.zotero-chat-history-popover-subtitle {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+.zotero-chat-history-popover-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	overflow-y: auto;
+	padding: 6px;
+}
+
+.zotero-chat-history-empty {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	font-style: italic;
+	text-align: center;
+	padding: 24px 0;
+	margin: 0;
+}
+
+.zotero-chat-history-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 8px 10px;
+	border-radius: 6px;
+	cursor: default;
+}
+
+.zotero-chat-history-item:hover {
+	background: var(--background-secondary);
+}
+
+.zotero-chat-history-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	overflow: hidden;
+	flex: 1;
+}
+
+.zotero-chat-history-title {
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.zotero-chat-history-date {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.zotero-chat-history-actions {
+	display: flex;
+	gap: 2px;
+	flex-shrink: 0;
+	opacity: 0;
+	transition: opacity 0.1s;
+}
+
+.zotero-chat-history-item:hover .zotero-chat-history-actions {
+	opacity: 1;
+}
+
+.zotero-chat-history-action {
+	color: var(--text-muted);
+	padding: 2px;
+}
+
+.zotero-chat-history-action:hover {
+	color: var(--text-normal);
+}
+
+.zotero-chat-history-delete:hover,
+.zotero-chat-history-delete-confirm {
+	color: var(--text-error) !important;
+}
+
+.zotero-chat-history-title-input {
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	background: var(--background-primary);
+	border: 1px solid var(--interactive-accent);
+	border-radius: 4px;
+	padding: 1px 4px;
+	width: 100%;
+	outline: none;
 }
 
 /* Messages */

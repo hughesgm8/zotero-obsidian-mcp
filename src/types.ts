@@ -105,3 +105,11 @@ export interface ZoteroSource {
 	itemType: string;
 	abstract?: string;
 }
+
+export interface CachedChat {
+	id: string;            // unique key: timestamp string at cache time
+	title: string;         // first user message truncated to 60 chars, editable
+	messages: ChatMessage[];
+	cachedAt: number;      // Date.now() ms
+	savedFilePath?: string; // vault path if explicitly saved
+}

@@ -9,7 +9,7 @@ import {
 	setIcon,
 } from "obsidian";
 import type ZoteroMCPChatPlugin from "./main";
-import type { ChatMessage } from "./types";
+import type { CachedChat, ChatMessage } from "./types";
 
 export const VIEW_TYPE_ZOTERO_CHAT = "zotero-mcp-chat-view";
 
@@ -48,6 +48,8 @@ export class ZoteroChatView extends ItemView {
 	private attachedNotes: Array<{ name: string; path: string; content: string }> = [];
 	private attachmentChipEl!: HTMLElement;
 	private sizeObserver: ResizeObserver | null = null;
+	private historyPopoverEl: HTMLElement | null = null;
+	private historyClickOutside: ((e: MouseEvent) => void) | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ZoteroMCPChatPlugin) {
 		super(leaf);
@@ -86,18 +88,24 @@ export class ZoteroChatView extends ItemView {
 
 		// Controls bar — between messages and input
 		const controlsBar = container.createDiv({ cls: "zotero-chat-controls-bar" });
+		const historyBtn = controlsBar.createEl("button", {
+			cls: "zotero-chat-history-btn clickable-icon",
+			attr: { "aria-label": "Chat history" },
+		});
+		setIcon(historyBtn, "history");
+		historyBtn.addEventListener("click", () => this.toggleHistoryPopover(historyBtn));
+		const saveBtn = controlsBar.createEl("button", {
+			cls: "zotero-chat-save-btn clickable-icon",
+			attr: { "aria-label": "Save conversation" },
+		});
+		setIcon(saveBtn, "download");
+		saveBtn.addEventListener("click", () => this.saveConversation());
 		const newChatBtn = controlsBar.createEl("button", {
 			cls: "zotero-chat-new-btn clickable-icon",
 			attr: { "aria-label": "New chat" },
 		});
 		setIcon(newChatBtn, "square-pen");
 		newChatBtn.addEventListener("click", () => this.clearChat());
-		const saveBtn = controlsBar.createEl("button", {
-			cls: "zotero-chat-save-btn clickable-icon",
-			attr: { "aria-label": "Save conversation" },
-		});
-		setIcon(saveBtn, "file-output");
-		saveBtn.addEventListener("click", () => this.saveConversation());
 
 		// Input area — unified box containing pills, textarea, and toolbar
 		const inputArea = container.createDiv({ cls: "zotero-chat-input-area" });
@@ -154,6 +162,10 @@ export class ZoteroChatView extends ItemView {
 	}
 
 	async onClose(): Promise<void> {
+		if (this.messages.length > 0) {
+			this.plugin.addToChatHistory(this.messages);
+		}
+		this.hideHistoryPopover();
 		this.sizeObserver?.disconnect();
 		this.sizeObserver = null;
 	}
@@ -293,10 +305,202 @@ export class ZoteroChatView extends ItemView {
 	}
 
 	private clearChat(): void {
+		if (this.messages.length > 0) {
+			this.plugin.addToChatHistory(this.messages);
+			new Notice("Chat saved to history", 3000);
+		}
 		this.messages = [];
 		this.messageListEl.empty();
 		this.renderWelcome();
 	}
+
+	// ── History popover ───────────────────────────────────────────────────────
+
+	private toggleHistoryPopover(anchor: HTMLElement): void {
+		if (this.historyPopoverEl) {
+			this.hideHistoryPopover();
+		} else {
+			this.showHistoryPopover(anchor);
+		}
+	}
+
+	private showHistoryPopover(anchor: HTMLElement): void {
+		this.plugin.pruneExpiredChatHistory();
+
+		const popover = document.createElement("div");
+		popover.className = "zotero-chat-history-popover";
+
+		// Position: above the anchor button, right-aligned (Copilot: side="top" align="end")
+		const rect = anchor.getBoundingClientRect();
+		popover.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+		popover.style.right  = `${window.innerWidth - rect.right}px`;
+
+		// Header
+		const header = popover.createDiv({ cls: "zotero-chat-history-popover-header" });
+		header.createSpan({ text: "Chat History", cls: "zotero-chat-history-popover-title" });
+		header.createSpan({ text: "Deleted after 30 days", cls: "zotero-chat-history-popover-subtitle" });
+
+		// List
+		const listEl = popover.createDiv({ cls: "zotero-chat-history-popover-list" });
+		this.buildHistoryList(listEl);
+
+		document.body.appendChild(popover);
+		this.historyPopoverEl = popover;
+
+		// Dismiss on click outside
+		const handler = (e: MouseEvent): void => {
+			if (!popover.contains(e.target as Node) && e.target !== anchor) {
+				this.hideHistoryPopover();
+			}
+		};
+		// Use setTimeout so the current click that opened it doesn't immediately close it
+		setTimeout(() => document.addEventListener("mousedown", handler), 0);
+		this.historyClickOutside = handler;
+	}
+
+	private hideHistoryPopover(): void {
+		this.historyPopoverEl?.remove();
+		this.historyPopoverEl = null;
+		if (this.historyClickOutside) {
+			document.removeEventListener("mousedown", this.historyClickOutside);
+			this.historyClickOutside = null;
+		}
+	}
+
+	private buildHistoryList(listEl: HTMLElement): void {
+		listEl.empty();
+		const history = this.plugin.chatHistory;
+		if (history.length === 0) {
+			listEl.createEl("p", {
+				text: "No chat history yet. Conversations are automatically saved here when you start a new chat.",
+				cls: "zotero-chat-history-empty",
+			});
+			return;
+		}
+		for (const entry of history) {
+			this.renderHistoryItem(listEl, entry);
+		}
+	}
+
+	private renderHistoryItem(listEl: HTMLElement, entry: CachedChat): void {
+		const row = listEl.createDiv({ cls: "zotero-chat-history-item" });
+
+		// Text group: title + date
+		const textGroup = row.createDiv({ cls: "zotero-chat-history-text" });
+		const titleEl = textGroup.createSpan({ text: entry.title, cls: "zotero-chat-history-title" });
+		const date = new Date(entry.cachedAt);
+		const dateStr = date.toLocaleDateString(undefined, {
+			month: "short", day: "numeric", year: "numeric",
+		});
+		textGroup.createSpan({ text: dateStr, cls: "zotero-chat-history-date" });
+
+		// Action buttons (revealed on hover via CSS)
+		const actionsEl = row.createDiv({ cls: "zotero-chat-history-actions" });
+
+		// Open source file
+		const openBtn = actionsEl.createEl("button", {
+			cls: "zotero-chat-history-action clickable-icon",
+			attr: { "aria-label": "Open source file" },
+		});
+		setIcon(openBtn, "arrow-up-right");
+		openBtn.addEventListener("click", async (e) => {
+			e.stopPropagation();
+			await this.openHistoryEntry(entry, listEl);
+		});
+
+		// Edit title
+		const editBtn = actionsEl.createEl("button", {
+			cls: "zotero-chat-history-action clickable-icon",
+			attr: { "aria-label": "Edit chat title" },
+		});
+		setIcon(editBtn, "pencil");
+		editBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.editHistoryTitle(entry, titleEl);
+		});
+
+		// Delete (two-click confirm, like Copilot)
+		const deleteBtn = actionsEl.createEl("button", {
+			cls: "zotero-chat-history-action zotero-chat-history-delete clickable-icon",
+			attr: { "aria-label": "Delete chat" },
+		});
+		setIcon(deleteBtn, "trash-2");
+		let confirmTimeout: ReturnType<typeof setTimeout> | null = null;
+		deleteBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			if (deleteBtn.hasClass("zotero-chat-history-delete-confirm")) {
+				// Second click — confirm delete
+				if (confirmTimeout) clearTimeout(confirmTimeout);
+				this.plugin.deleteChatHistoryEntry(entry.id);
+				row.remove();
+				if (this.plugin.chatHistory.length === 0 && this.historyPopoverEl) {
+					this.buildHistoryList(
+						this.historyPopoverEl.querySelector(".zotero-chat-history-popover-list") as HTMLElement
+					);
+				}
+			} else {
+				// First click — enter confirm state
+				deleteBtn.addClass("zotero-chat-history-delete-confirm");
+				confirmTimeout = setTimeout(() => {
+					deleteBtn.removeClass("zotero-chat-history-delete-confirm");
+					confirmTimeout = null;
+				}, 3000);
+			}
+		});
+	}
+
+	private async openHistoryEntry(entry: CachedChat, listEl: HTMLElement): Promise<void> {
+		let filePath = entry.savedFilePath;
+		if (!filePath || !this.app.vault.getAbstractFileByPath(filePath)) {
+			filePath = await this.saveConversation(entry.messages);
+			if (filePath) {
+				this.plugin.updateChatHistoryEntry(entry.id, { savedFilePath: filePath });
+				// Refresh list so the entry shows as saved
+				this.buildHistoryList(listEl);
+			}
+		}
+		if (filePath) {
+			const file = this.app.vault.getAbstractFileByPath(filePath) as TFile;
+			if (file) {
+				await this.app.workspace.getLeaf(false).openFile(file);
+				this.hideHistoryPopover();
+			}
+		}
+	}
+
+	private editHistoryTitle(entry: CachedChat, titleEl: HTMLSpanElement): void {
+		const input = document.createElement("input");
+		input.type = "text";
+		input.value = entry.title;
+		input.className = "zotero-chat-history-title-input";
+		titleEl.replaceWith(input);
+		input.focus();
+		input.select();
+
+		let committed = false;
+		const commit = (): void => {
+			if (committed) return;
+			committed = true;
+			const newTitle = input.value.trim() || entry.title;
+			this.plugin.updateChatHistoryEntry(entry.id, { title: newTitle });
+			const newSpan = document.createElement("span");
+			newSpan.className = "zotero-chat-history-title";
+			newSpan.textContent = newTitle;
+			input.replaceWith(newSpan);
+		};
+		const cancel = (): void => {
+			if (committed) return;
+			committed = true;
+			input.replaceWith(titleEl);
+		};
+		input.addEventListener("keydown", (e: KeyboardEvent) => {
+			if (e.key === "Enter") { e.preventDefault(); commit(); }
+			else if (e.key === "Escape") { e.preventDefault(); cancel(); }
+		});
+		input.addEventListener("blur", commit);
+	}
+
+	// ── Utility ───────────────────────────────────────────────────────────────
 
 	private setLoading(loading: boolean): void {
 		this.isLoading = loading;
@@ -342,8 +546,9 @@ export class ZoteroChatView extends ItemView {
 		this.messageListEl.scrollTop = this.messageListEl.scrollHeight;
 	}
 
-	private async saveConversation(): Promise<void> {
-		const userMessages = this.messages.filter((m) => m.role === "user");
+	async saveConversation(messages?: ChatMessage[]): Promise<string | undefined> {
+		const source = messages ?? this.messages;
+		const userMessages = source.filter((m) => m.role === "user");
 		if (userMessages.length === 0) {
 			new Notice("Nothing to save yet");
 			return;
@@ -379,7 +584,7 @@ export class ZoteroChatView extends ItemView {
 		md += `# ${title}\n\n`;
 		md += `*Saved: ${savedAt}*\n\n---\n\n`;
 
-		for (const msg of this.messages) {
+		for (const msg of source) {
 			if (msg.role === "user") {
 				md += `**You:** ${msg.content}\n`;
 				const paths = (msg as ChatMessage & { attachedNotePaths?: string[] }).attachedNotePaths;
@@ -401,6 +606,7 @@ export class ZoteroChatView extends ItemView {
 
 		await this.app.vault.create(fullPath, md);
 		new Notice(`Saved to ${fullPath}`);
+		return fullPath;
 	}
 
 	private async attachNote(file: TFile): Promise<void> {

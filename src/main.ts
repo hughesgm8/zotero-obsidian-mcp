@@ -1,6 +1,6 @@
 import { Notice, Plugin, addIcon } from "obsidian";
 import type { Editor } from "obsidian";
-import type { ZoteroMCPSettings } from "./types";
+import type { CachedChat, ChatMessage, ZoteroMCPSettings } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import { ZoteroMCPSettingTab } from "./settings";
 import { MCPServerManager } from "./mcp-server";
@@ -11,8 +11,11 @@ import { ZoteroChatView, VIEW_TYPE_ZOTERO_CHAT } from "./chat-view";
 import { PaperImporter } from "./paper-importer";
 import { ImportModal } from "./import-modal";
 
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
 export default class ZoteroMCPChatPlugin extends Plugin {
 	settings!: ZoteroMCPSettings;
+	public chatHistory: CachedChat[] = [];
 	private mcpServer: MCPServerManager | null = null;
 	private mcpClient: MCPClient | null = null;
 	private orchestrator: Orchestrator | null = null;
@@ -131,17 +134,58 @@ export default class ZoteroMCPChatPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			await this.loadData()
+		const data = (await this.loadData()) ?? {};
+		// Backward compat: old format stored settings at root; new format nests them under `settings`
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ?? data);
+		this.chatHistory = (data.chatHistory ?? []).filter(
+			(c: CachedChat) => Date.now() - c.cachedAt < THIRTY_DAYS_MS
 		);
 	}
 
 	async saveSettings(): Promise<void> {
-		await this.saveData(this.settings);
+		await this.saveData({ settings: this.settings, chatHistory: this.chatHistory });
 		// Recreate orchestrator with new settings when settings change
 		this.rebuildOrchestrator();
+	}
+
+	async saveChatHistory(): Promise<void> {
+		await this.saveData({ settings: this.settings, chatHistory: this.chatHistory });
+	}
+
+	addToChatHistory(messages: ChatMessage[]): void {
+		const firstUser = messages.find((m) => m.role === "user");
+		if (!firstUser) return;
+		const entry: CachedChat = {
+			id: Date.now().toString(),
+			title: firstUser.content.slice(0, 60),
+			messages: [...messages],
+			cachedAt: Date.now(),
+		};
+		this.chatHistory.unshift(entry);
+		this.saveChatHistory();
+	}
+
+	updateChatHistoryEntry(id: string, patch: Partial<Pick<CachedChat, "title" | "savedFilePath">>): void {
+		const entry = this.chatHistory.find((c) => c.id === id);
+		if (entry) {
+			Object.assign(entry, patch);
+			this.saveChatHistory();
+		}
+	}
+
+	deleteChatHistoryEntry(id: string): void {
+		this.chatHistory = this.chatHistory.filter((c) => c.id !== id);
+		this.saveChatHistory();
+	}
+
+	pruneExpiredChatHistory(): void {
+		const before = this.chatHistory.length;
+		this.chatHistory = this.chatHistory.filter(
+			(c) => Date.now() - c.cachedAt < THIRTY_DAYS_MS
+		);
+		if (this.chatHistory.length !== before) {
+			this.saveChatHistory();
+		}
 	}
 
 	isMCPRunning(): boolean {
