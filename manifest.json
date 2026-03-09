@@ -1,7 +1,7 @@
 {
 	"id": "zotero-mcp-chat",
 	"name": "Zotero MCP Chat",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"minAppVersion": "0.15.0",
 	"description": "Query your Zotero library using natural language via MCP and LLMs",
 	"author": "hughesgm8",
