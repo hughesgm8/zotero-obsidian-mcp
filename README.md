@@ -152,7 +152,7 @@ This plugin isn't in the Obsidian community store yet, so you'll install it usin
 1. Go to **Settings → Community plugins**
 2. Find **Zotero MCP Chat** and toggle it on
 
-> **Getting future updates:** When a new version is released, BRAT will download it automatically the next time you open Obsidian. After that, go to **Settings → Community plugins** and toggle Zotero MCP Chat off and back on to apply the update.
+> **Getting future updates:** BRAT checks for updates automatically each time Obsidian starts. To check manually at any time, go to **Settings → BRAT** and click **Check for updates** (the refresh icon at the top right). Once BRAT has downloaded a new version, you need to reload the plugin to apply it — either toggle it off and back on in **Settings → Community plugins**, or restart Obsidian entirely.
 
 ---
 
