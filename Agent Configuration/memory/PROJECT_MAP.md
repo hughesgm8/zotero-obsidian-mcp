@@ -24,11 +24,12 @@ Maintain a system map the user can understand. The project's status is updated r
 - "Smart mode" for capable models that can call MCP tools themselves
 - Model switching directly in the sidebar UI (currently settings-only)
 - **UI polish pass**: revisit look and feel to more closely match Copilot (typography, spacing, message bubble style, overall visual consistency) — current layout is structurally correct but visual details need refinement
-- Chat history: browse and reload saved conversations (design TBD)
 - Chat settings panel in sidebar (future, low priority)
 - More detailed and adaptive context on user's research interests to expand the "Relevance" section of paper imports
 
 ## ✅ Recently Shipped
+- **Persistent chat history with sidebar popover** (2026-03-10, v0.2.2): Conversations are auto-cached to plugin data on "New chat" or view close. History button (clock icon) opens a `position: fixed` popover above the button — non-disruptive and sidebar-native. Each entry shows title + date with hover-reveal actions: open source file, edit title, delete (with "Delete?" confirm pill). Chats auto-expire after 30 days. Save icon updated to `download` (tray). Delete confirmation changed to an expanding "Delete?" button label for clarity.
+
 - **Persistent import loading notice** (2026-03-06): Import notices now stay visible for the full duration of the AI generation (timeout=0), then are dismissed via `.hide()` on success or error. Previously the 8-second notice disappeared mid-import, leaving users uncertain whether the operation was still running. Closes GitHub issue #3.
 
 - **Recently added papers in import modal** (2026-03-06): Smart Import modal now shows the 10 most recently added Zotero papers on open, before any search is typed. Clears back to this list when search is emptied. Uses Node `http` (not `requestUrl`) to call the Zotero local API at port 23119 — `requestUrl` triggered a CSRF 403; Node http sends no Origin header and is accepted. Closes GitHub issue #2.

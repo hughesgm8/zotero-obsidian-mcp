@@ -1,5 +1,26 @@
 # Architectural Decisions
 
+## Decision: Fixed popover (position: fixed, document.body) for chat history — *2026-03-10*
+
+### Why This Matters
+The history panel needed to feel like part of the sidebar, not a disruptive app-level interruption. Getting this wrong made the feature feel out of place.
+
+### Options We Considered
+1. **Obsidian `Modal`**: Easy to implement, but opens center-screen — jarring for sidebar-confined functionality
+2. **Absolute div inside sidebar container**: Clean containment, but the sidebar has `overflow: hidden`, which clips any child that escapes the scroll area
+3. **`position: fixed` div appended to `document.body`**: Escapes all overflow clipping, positions freely relative to the viewport, dismissed via click-outside listener
+
+### Why We Chose This
+- Matches Copilot's `ChatHistoryPopover` (Radix UI, `side="top" align="end"`) in behavior and feel
+- `position: fixed` + `getBoundingClientRect()` anchors it precisely above the trigger button without being clipped
+- `document.body` append avoids any z-index or overflow fight with the sidebar layout
+- Click-outside listener (deferred via `setTimeout` to avoid immediate self-close) handles dismissal cleanly
+
+### What Could Change
+If Obsidian exposes a stable `Popover` API in the future, we could migrate to that for better integration with theme layering. For now, custom fixed positioning is the most reliable option.
+
+---
+
 ## Decision: Deterministic orchestration instead of LLM tool-calling
 
 ### Why This Matters
