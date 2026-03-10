@@ -419,17 +419,26 @@ export class ZoteroChatView extends ItemView {
 			this.editHistoryTitle(entry, titleEl);
 		});
 
-		// Delete (two-click confirm, like Copilot)
+		// Delete — first click expands to "Delete?" label; second click confirms
 		const deleteBtn = actionsEl.createEl("button", {
 			cls: "zotero-chat-history-action zotero-chat-history-delete clickable-icon",
 			attr: { "aria-label": "Delete chat" },
 		});
 		setIcon(deleteBtn, "trash-2");
 		let confirmTimeout: ReturnType<typeof setTimeout> | null = null;
+
+		const resetDelete = (): void => {
+			if (confirmTimeout) { clearTimeout(confirmTimeout); confirmTimeout = null; }
+			deleteBtn.removeClass("zotero-chat-history-delete-confirm");
+			deleteBtn.empty();
+			setIcon(deleteBtn, "trash-2");
+			deleteBtn.removeAttribute("style");
+		};
+
 		deleteBtn.addEventListener("click", (e) => {
 			e.stopPropagation();
 			if (deleteBtn.hasClass("zotero-chat-history-delete-confirm")) {
-				// Second click — confirm delete
+				// Second click — confirmed
 				if (confirmTimeout) clearTimeout(confirmTimeout);
 				this.plugin.deleteChatHistoryEntry(entry.id);
 				row.remove();
@@ -439,12 +448,11 @@ export class ZoteroChatView extends ItemView {
 					);
 				}
 			} else {
-				// First click — enter confirm state
+				// First click — expand to "Delete?" label
 				deleteBtn.addClass("zotero-chat-history-delete-confirm");
-				confirmTimeout = setTimeout(() => {
-					deleteBtn.removeClass("zotero-chat-history-delete-confirm");
-					confirmTimeout = null;
-				}, 3000);
+				deleteBtn.empty();
+				deleteBtn.setText("Delete?");
+				confirmTimeout = setTimeout(() => resetDelete(), 3000);
 			}
 		});
 	}

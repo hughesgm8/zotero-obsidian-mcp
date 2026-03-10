@@ -188,9 +188,20 @@
 	color: var(--text-normal);
 }
 
-.zotero-chat-history-delete:hover,
+.zotero-chat-history-delete:hover {
+	color: var(--text-error);
+}
+
 .zotero-chat-history-delete-confirm {
-	color: var(--text-error) !important;
+	color: var(--text-on-accent) !important;
+	background: var(--text-error) !important;
+	border-radius: 4px;
+	padding: 1px 6px !important;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	white-space: nowrap;
+	width: auto !important;
+	height: auto !important;
 }
 
 .zotero-chat-history-title-input {
