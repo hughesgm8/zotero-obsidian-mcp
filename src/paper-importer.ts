@@ -289,8 +289,10 @@ export class PaperImporter {
 		fullText: string
 	): LLMMessage[] {
 		const systemMsg =
-			"You are a research assistant helping a researcher catalog and understand academic papers. " +
-			"Respond with ONLY the requested sections — no preamble, no extra commentary.";
+			"You are helping a researcher build a personal knowledge base. " + 
+			"Your job is to orient them and spark productive thinking — not to summarize comprehensively. " + 
+			"Be direct and opinionated. Distinguish between what a paper claims and what it demonstrates. " +
+			"Never answer questions for the reader; raise them.";
 
 		let userContent = `Please analyze the following paper and produce structured notes.\n\n`;
 		userContent += `**Title:** ${source.title}\n`;

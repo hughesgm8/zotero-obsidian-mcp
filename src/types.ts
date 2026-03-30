@@ -7,20 +7,25 @@ export interface SummarySection {
 
 export const DEFAULT_SUMMARY_SECTIONS: SummarySection[] = [
 	{
-		name: "Summary",
-		instructions: "2-3 paragraphs covering the paper's main argument, methodology, and findings.",
+		name: "Core Claim",
+		instructions: "State the paper's central argument in 4–5 sentences. Include what the paper proposes, the conceptual or empirical basis it uses, and what it does not yet demonstrate. If it's a framework or position paper without empirical validation, say so explicitly.",
 	},
 	{
-		name: "Interesting Takeaways",
-		instructions: "Bullet points of the most notable insights.",
+		name: "What Isn't in the Abstract",
+		instructions: "List 4–5 things a reader wouldn't know from the title and abstract alone. For each item, write 2–3 sentences explaining what it is and why it's worth noting — don't just name it. Don't restate claims from the abstract. These should be non-obvious insights, unexpected framings, or moves in the argument worth noticing. ",
 	},
 	{
-		name: "Questions for Active Engagement",
-		instructions: "Generate 4-5 questions specific to named elements of this paper — a particular method, finding, claim, or dataset. Focus on how this paper's methods, findings, or framing might apply to, complicate, or inform the researcher's work. Include 1-2 questions about open questions or gaps the paper raises.",
+		name: "Reading the Evidence",
+		instructions: "Write 2 short paragraphs. First: describe how the paper builds its case — the theoretical foundations it draws on, the kind of examples or data it uses, how the argument is structured. Second: assess the strength of that evidence — what would count as validation, what gaps remain, and what the paper itself acknowledges as limitations.",
 	},
 	{
-		name: "Relevance",
-		instructions: "How this paper relates to the researcher's focus described in the 'Your research interests' setting. If no research focus is provided, note that and keep this section brief.",
+		name: "Questions to Hold",
+		instructions: "Write 3–4 questions — one sentence each — for the researcher to hold while reading. At least one should target an unstated assumption the paper makes. At least one should connect to the researcher's described work. At least one should point to a gap or open question the paper raises. Do not answer these questions.",
+	},
+	{
+		name: "Connections",
+		instructions: "Identify 2–3 specific connections to the researcher's described work. For each, write 3–4 sentences: name the specific concept, method, or finding, then explain how the researcher might engage with or use it. Aim for actionable specificity, not topic-level overlap. If no research description is provided, say so and skip this section.",
+
 	},
 ];
 
