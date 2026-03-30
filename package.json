@@ -1,6 +1,6 @@
 {
 	"name": "zotero-mcp-chat",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "Query your Zotero library using natural language via MCP and LLMs",
 	"type": "module",
 	"scripts": {
