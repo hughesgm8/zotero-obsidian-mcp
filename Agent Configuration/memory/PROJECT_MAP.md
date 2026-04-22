@@ -28,6 +28,8 @@ Maintain a system map the user can understand. The project's status is updated r
 - More detailed and adaptive context on user's research interests to expand the "Relevance" section of paper imports
 
 ## ✅ Recently Shipped
+- **Zotero tags in imported notes** (2026-04-22, v0.2.4): Tags assigned to a paper in Zotero now appear in the note frontmatter after import. Uses the local Zotero API (`/api/users/0/items/{key}`) as the authoritative source — MCP metadata output does not include tags. `ZoteroSource` gained a `tags` field; `buildTags()` now appends Zotero tags after the static ones.
+
 - **Persistent chat history with sidebar popover** (2026-03-10, v0.2.2): Conversations are auto-cached to plugin data on "New chat" or view close. History button (clock icon) opens a `position: fixed` popover above the button — non-disruptive and sidebar-native. Each entry shows title + date with hover-reveal actions: open source file, edit title, delete (with "Delete?" confirm pill). Chats auto-expire after 30 days. Save icon updated to `download` (tray). Delete confirmation changed to an expanding "Delete?" button label for clarity.
 
 - **Persistent import loading notice** (2026-03-06): Import notices now stay visible for the full duration of the AI generation (timeout=0), then are dismissed via `.hide()` on success or error. Previously the 8-second notice disappeared mid-import, leaving users uncertain whether the operation was still running. Closes GitHub issue #3.

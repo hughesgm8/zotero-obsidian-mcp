@@ -109,6 +109,7 @@ export interface ZoteroSource {
 	year: string;
 	itemType: string;
 	abstract?: string;
+	tags?: string[];
 }
 
 export interface CachedChat {

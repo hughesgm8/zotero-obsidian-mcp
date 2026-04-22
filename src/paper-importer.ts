@@ -52,6 +52,7 @@ export class PaperImporter {
 				const d = item.data;
 				const dateStr = (d.date as string | undefined) ?? "";
 				const yearMatch = dateStr.match(/\b(\d{4})\b/);
+				const rawTags = d.tags as Array<{ tag: string }> | undefined;
 				return {
 					key: item.key,
 					title: (d.title as string | undefined) ?? "Untitled",
@@ -61,6 +62,7 @@ export class PaperImporter {
 					year: yearMatch ? yearMatch[1] : "n.d.",
 					itemType: (d.itemType as string | undefined) ?? "unknown",
 					abstract: (d.abstractNote as string | undefined) || undefined,
+					tags: rawTags?.map((t) => t.tag).filter(Boolean) ?? [],
 				};
 			});
 	}
@@ -90,6 +92,34 @@ export class PaperImporter {
 		}
 
 		return sources;
+	}
+
+	private async fetchItemTags(key: string): Promise<string[]> {
+		const path = `/api/users/0/items/${key}`;
+		try {
+			const body = await new Promise<string>((resolve, reject) => {
+				const req = http.request(
+					{ hostname: "localhost", port: 23119, path, method: "GET" },
+					(res) => {
+						if (res.statusCode && res.statusCode >= 400) {
+							reject(new Error(`Zotero API returned ${res.statusCode}`));
+							res.resume();
+							return;
+						}
+						let data = "";
+						res.on("data", (chunk) => { data += chunk.toString(); });
+						res.on("end", () => resolve(data));
+					}
+				);
+				req.on("error", reject);
+				req.end();
+			});
+			const item: { data: { tags?: Array<{ tag: string }> } } = JSON.parse(body);
+			return (item.data.tags ?? []).map((t) => t.tag).filter(Boolean);
+		} catch (err) {
+			console.error("[ZoteroChat] fetchItemTags failed:", err);
+			return [];
+		}
 	}
 
 	async importPaper(
@@ -124,10 +154,14 @@ export class PaperImporter {
 		// 4) Parse sections from LLM response
 		const sections = this.parseLLMSections(response.content);
 
-		// 5) Build the note markdown
+		// 5) Ensure Zotero tags are populated (authoritative source is the local API)
+		if (!source.tags || source.tags.length === 0) {
+			source.tags = await this.fetchItemTags(source.key);
+		}
+		// 6) Build the note markdown
 		const note = this.buildNote(source, sections);
 
-		// 6) Save to vault
+		// 7) Save to vault
 		const folder = normalizePath(this.settings.importFolder);
 		await this.ensureFolder(folder);
 
@@ -206,6 +240,8 @@ export class PaperImporter {
 	): ZoteroSource | null {
 		try {
 			const data = JSON.parse(metadataStr);
+			const rawTags: Array<{ tag: string } | string> = data.tags ?? [];
+			const tags = rawTags.map((t) => (typeof t === "string" ? t : t.tag)).filter(Boolean);
 			return {
 				key,
 				title: data.title || "Untitled",
@@ -217,6 +253,7 @@ export class PaperImporter {
 						: "n.d.",
 				itemType: data.itemType || "unknown",
 				abstract: data.abstractNote || data.abstract,
+				tags,
 			};
 		} catch {
 			// Parse markdown format
@@ -229,6 +266,7 @@ export class PaperImporter {
 		let itemType = "unknown";
 		const abstractLines: string[] = [];
 		let inAbstract = false;
+		const tags: string[] = [];
 
 		for (const line of lines) {
 			const t = line.trim();
@@ -246,6 +284,10 @@ export class PaperImporter {
 				const m = dateStr.match(/\b(\d{4})\b/);
 				year = m ? m[1] : "n.d.";
 				inAbstract = false;
+			} else if (/^\*\*Tags:\*\*/.test(t)) {
+				const tagStr = t.replace(/^\*\*Tags:\*\*\s*/, "").trim();
+				tags.push(...tagStr.split(",").map((s) => s.trim()).filter(Boolean));
+				inAbstract = false;
 			} else if (t === "## Abstract") {
 				inAbstract = true;
 			} else if (t.startsWith("## ")) {
@@ -262,6 +304,7 @@ export class PaperImporter {
 			year,
 			itemType,
 			abstract: abstractLines.length > 0 ? abstractLines.join(" ") : undefined,
+			tags,
 		};
 	}
 
@@ -387,6 +430,11 @@ export class PaperImporter {
 		}
 		tags.push("literature");
 		tags.push("ai-imported");
+		if (source.tags) {
+			for (const t of source.tags) {
+				if (!tags.includes(t)) tags.push(t);
+			}
+		}
 		return tags;
 	}
 
